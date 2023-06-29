@@ -15,19 +15,23 @@ using PortingAssistant.Client.Telemetry;
 using System.Diagnostics;
 using System.Reflection;
 using PortingAssistant.Client.Common.Utils;
+using Serilog.Core;
 
 namespace PortingAssistant.Client.CLI
 
 {
-    class Program
+    public class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
             PortingAssistantCLI cli = new PortingAssistantCLI();
             cli.HandleCommand(args);
 
+            var levelSwitch = new LoggingLevelSwitch();
+            levelSwitch.MinimumLevel = cli.MinimumLoggingLevel;
+
             var logConfiguration = new LoggerConfiguration().Enrich.FromLogContext()
-                .MinimumLevel.Debug()
+                .MinimumLevel.ControlledBy(levelSwitch)
                 .WriteTo.Console();
 
             var assemblyPath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -131,7 +135,8 @@ namespace PortingAssistant.Client.CLI
                             SolutionPath = cli.SolutionPath,
                             TargetFramework = cli.Target,
                             RecommendedActions = filteredRecommendedActions.ToList(),
-                            IncludeCodeFix = true
+                            IncludeCodeFix = true,
+                            VisualStudioVersion = solutionSettings.VisualStudioVersion
                         };
 
                         TraceEvent.Start(Log.Logger, $"Applying porting actions to projects in {cli.SolutionPath}");
